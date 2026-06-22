@@ -23,6 +23,7 @@ pub struct PiecewiseLinear {
 }
 
 impl PiecewiseLinear {
+    #[must_use] 
     pub fn eval(&self, t: f32) -> f32 {
         if self.points.is_empty() { return 0.0; }
         if t <= self.points[0].0 {
@@ -39,16 +40,19 @@ impl PiecewiseLinear {
         last.1 + self.final_slope * (t - last.0)
     }
 
+    #[must_use] 
     pub fn minus_t(&self) -> PiecewiseLinear {
         let points = self.points.iter().map(|&(t, y)| (t, y - t)).collect();
         PiecewiseLinear { points, final_slope: self.final_slope - 1.0 }
     }
     
+    #[must_use] 
     pub fn plus_t(&self) -> PiecewiseLinear {
         let points = self.points.iter().map(|&(t, y)| (t, y + t)).collect();
         PiecewiseLinear { points, final_slope: self.final_slope + 1.0 }
     }
 
+    #[must_use] 
     pub fn combine(a: &PiecewiseLinear, b: &PiecewiseLinear, is_max: bool) -> PiecewiseLinear {
         let mut t_candidates = Vec::new();
         for &(t, _) in &a.points { t_candidates.push(t); }
@@ -138,14 +142,17 @@ impl PiecewiseLinear {
         }
     }
 
+    #[must_use] 
     pub fn max(a: &PiecewiseLinear, b: &PiecewiseLinear) -> PiecewiseLinear {
         Self::combine(a, b, true)
     }
 
+    #[must_use] 
     pub fn min(a: &PiecewiseLinear, b: &PiecewiseLinear) -> PiecewiseLinear {
         Self::combine(a, b, false)
     }
 
+    #[must_use] 
     pub fn intersect(left: &PiecewiseLinear, right: &PiecewiseLinear) -> (f32, f32) {
         let mut all_t = Vec::new();
         for &(t, _) in &left.points { all_t.push(t); }
@@ -159,7 +166,7 @@ impl PiecewiseLinear {
         if start_t > -1.0 { start_t = -1.0; }
         
         if left.eval(start_t) <= right.eval(start_t) {
-            return (start_t, (left.eval(start_t) + right.eval(start_t)) / 2.0);
+            return (start_t, f32::midpoint(left.eval(start_t), right.eval(start_t)));
         }
         
         if start_t == -1.0 && all_t[0] > -1.0 {
@@ -195,6 +202,7 @@ impl PiecewiseLinear {
         (-1.0, 0.0)
     }
 
+    #[must_use] 
     pub fn truncate(pwl: &PiecewiseLinear, t_g: f32, m_g: f32) -> PiecewiseLinear {
         let mut new_points = Vec::new();
         for &(t, y) in &pwl.points {
@@ -208,6 +216,7 @@ impl PiecewiseLinear {
 }
 
 impl CGTValue {
+    #[must_use] 
     pub fn is_number(&self) -> bool {
         match self {
             CGTValue::Integer(_) | CGTValue::Dyadic(_, _) => true,
@@ -215,6 +224,7 @@ impl CGTValue {
         }
     }
 
+    #[must_use] 
     pub fn to_f32(&self) -> f32 {
         match self {
             CGTValue::Integer(i) => *i as f32,
@@ -223,6 +233,7 @@ impl CGTValue {
         }
     }
 
+    #[must_use] 
     pub fn options(&self) -> (Vec<CGTValue>, Vec<CGTValue>) {
         match self {
             CGTValue::Integer(n) => {
@@ -249,6 +260,7 @@ impl CGTValue {
         }
     }
 
+    #[must_use] 
     pub fn ge(&self, other: &Self) -> bool {
         let (_, x_r) = self.options();
         let (y_l, _) = other.options();
@@ -257,10 +269,12 @@ impl CGTValue {
         true
     }
 
+    #[must_use] 
     pub fn le(&self, other: &Self) -> bool {
         other.ge(self)
     }
 
+    #[must_use] 
     pub fn exact_thermograph(&self) -> (f32, f32, Option<PiecewiseLinear>, Option<PiecewiseLinear>) {
         if self.is_number() {
             let m = self.to_f32();
@@ -307,31 +321,37 @@ impl CGTValue {
         (t_g, m_g, final_l, final_r)
     }
 
+    #[must_use] 
     pub fn thermograph(&self) -> (f32, f32) {
         let (t_g, m_g, _, _) = self.exact_thermograph();
         (t_g, m_g)
     }
 
+    #[must_use] 
     pub fn temperature(&self) -> f32 { self.thermograph().0 }
     
+    #[must_use] 
     pub fn mean_value(&self) -> f32 { self.thermograph().1 }
 
+    #[must_use] 
     pub fn left_scaffold(&self, t: f32) -> f32 {
         if self.is_number() { return self.to_f32(); }
         let (_, _, l_scaffold, _) = self.exact_thermograph();
         if let Some(l) = l_scaffold { l.eval(t) } else { f32::NEG_INFINITY }
     }
 
+    #[must_use] 
     pub fn right_scaffold(&self, t: f32) -> f32 {
         if self.is_number() { return self.to_f32(); }
         let (_, _, _, r_scaffold) = self.exact_thermograph();
         if let Some(r) = r_scaffold { r.eval(t) } else { f32::INFINITY }
     }
     
+    #[must_use] 
     pub fn simplify(&self) -> Self {
         let (left, right) = self.options();
-        let l_simp: Vec<CGTValue> = left.iter().map(|o| o.simplify()).collect();
-        let r_simp: Vec<CGTValue> = right.iter().map(|o| o.simplify()).collect();
+        let l_simp: Vec<CGTValue> = left.iter().map(CGTValue::simplify).collect();
+        let r_simp: Vec<CGTValue> = right.iter().map(CGTValue::simplify).collect();
         
         let mut current_game = CGTValue::GameTree { left: l_simp, right: r_simp };
         
