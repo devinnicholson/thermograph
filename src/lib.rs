@@ -16,6 +16,70 @@ pub enum CGTValue {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DyadicRational {
+    numerator: i32,
+    denominator_power: u32,
+}
+
+impl DyadicRational {
+    #[must_use]
+    pub fn new(numerator: i32, denominator_power: u32) -> Self {
+        if numerator == 0 {
+            return Self {
+                numerator: 0,
+                denominator_power: 0,
+            };
+        }
+
+        let mut numerator = numerator;
+        let mut denominator_power = denominator_power;
+        while denominator_power > 0 && numerator % 2 == 0 {
+            numerator /= 2;
+            denominator_power -= 1;
+        }
+
+        Self {
+            numerator,
+            denominator_power,
+        }
+    }
+
+    #[must_use]
+    pub fn numerator(&self) -> i32 {
+        self.numerator
+    }
+
+    #[must_use]
+    pub fn denominator_power(&self) -> u32 {
+        self.denominator_power
+    }
+
+    #[must_use]
+    pub fn to_f32(&self) -> f32 {
+        let den_i32 = i32::try_from(self.denominator_power).unwrap_or(i32::MAX);
+        self.numerator as f32 / 2.0_f32.powi(den_i32)
+    }
+
+    #[must_use]
+    pub fn canonical_serialization(&self) -> String {
+        format!("Number({}/2^{})", self.numerator, self.denominator_power)
+    }
+}
+
+const FNV64_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
+const FNV64_PRIME: u64 = 0x0000_0100_0000_01b3;
+
+#[must_use]
+fn stable_hash_bytes(bytes: &[u8]) -> u64 {
+    let mut hash = FNV64_OFFSET_BASIS;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(FNV64_PRIME);
+    }
+    hash
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct PiecewiseLinear {
     pub points: Vec<(f32, f32)>,
@@ -253,20 +317,72 @@ impl CGTValue {
 
     #[must_use]
     pub fn try_to_f32(&self) -> Option<f32> {
-        match self {
-            CGTValue::Integer(i) => Some(*i as f32),
-            CGTValue::Dyadic(num, den) => {
-                let den_i32 = i32::try_from(*den).unwrap_or(i32::MAX);
-                Some(*num as f32 / 2.0_f32.powi(den_i32))
-            }
-            _ => None,
-        }
+        self.try_to_dyadic().map(|dyadic| dyadic.to_f32())
     }
 
     #[must_use]
     pub fn to_f32(&self) -> f32 {
         self.try_to_f32()
             .expect("CGTValue::to_f32 requires Integer or Dyadic")
+    }
+
+    #[must_use]
+    pub fn try_to_dyadic(&self) -> Option<DyadicRational> {
+        match self {
+            CGTValue::Integer(i) => Some(DyadicRational::new(*i, 0)),
+            CGTValue::Dyadic(num, den) => Some(DyadicRational::new(*num, *den)),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub fn canonical_serialization(&self) -> String {
+        if let Some(dyadic) = self.try_to_dyadic() {
+            return dyadic.canonical_serialization();
+        }
+
+        match self {
+            CGTValue::Integer(_) | CGTValue::Dyadic(_, _) => unreachable!(),
+            CGTValue::Star => "Star".to_string(),
+            CGTValue::Up => "Up".to_string(),
+            CGTValue::Down => "Down".to_string(),
+            CGTValue::GameTree { left, right } => {
+                let mut left_options = left
+                    .iter()
+                    .map(CGTValue::canonical_serialization)
+                    .collect::<Vec<_>>();
+                left_options.sort();
+                left_options.dedup();
+
+                let mut right_options = right
+                    .iter()
+                    .map(CGTValue::canonical_serialization)
+                    .collect::<Vec<_>>();
+                right_options.sort();
+                right_options.dedup();
+
+                format!(
+                    "GameTree(L[{}];R[{}])",
+                    left_options.join(","),
+                    right_options.join(",")
+                )
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        self.canonical_serialization().into_bytes()
+    }
+
+    #[must_use]
+    pub fn stable_canonical_hash(&self) -> u64 {
+        stable_hash_bytes(&self.canonical_bytes())
+    }
+
+    #[must_use]
+    pub fn stable_canonical_digest(&self) -> String {
+        format!("{:016x}", self.stable_canonical_hash())
     }
 
     #[must_use]
