@@ -1,4 +1,4 @@
-use thermograph::{CGTValue, DyadicRational};
+use thermograph::{CGTValue, DyadicRational, ExactValueClass};
 
 #[test]
 fn exact_dyadic_accessor_canonicalizes_numeric_values() {
@@ -20,28 +20,56 @@ fn exact_dyadic_accessor_canonicalizes_numeric_values() {
 #[test]
 fn canonical_serialization_and_digest_are_stable_for_core_values() {
     let cases = [
-        (CGTValue::Integer(7), "Number(7/2^0)", "97e464279d224621"),
-        (CGTValue::Dyadic(1, 1), "Number(1/2^1)", "ae0c0157cfae6faa"),
-        (CGTValue::Star, "Star", "d98b59251f065471"),
-        (CGTValue::Up, "Up", "09313a07b5c3ab60"),
-        (CGTValue::Down, "Down", "032c13736048bf35"),
+        (
+            CGTValue::Integer(7),
+            ExactValueClass::Number,
+            "Number(7/2^0)",
+            "97e464279d224621",
+        ),
+        (
+            CGTValue::Dyadic(1, 1),
+            ExactValueClass::Number,
+            "Number(1/2^1)",
+            "ae0c0157cfae6faa",
+        ),
+        (
+            CGTValue::Star,
+            ExactValueClass::Star,
+            "Star",
+            "d98b59251f065471",
+        ),
+        (CGTValue::Up, ExactValueClass::Up, "Up", "09313a07b5c3ab60"),
+        (
+            CGTValue::Down,
+            ExactValueClass::Down,
+            "Down",
+            "032c13736048bf35",
+        ),
         (
             CGTValue::GameTree {
                 left: vec![CGTValue::Star, CGTValue::Integer(1)],
                 right: vec![CGTValue::Down, CGTValue::Integer(-1)],
             },
+            ExactValueClass::GameTree,
             "GameTree(L[Number(1/2^0),Star];R[Down,Number(-1/2^0)])",
             "c45a64ff05afdb7a",
         ),
     ];
 
-    for (value, expected_serialization, expected_digest) in cases {
+    for (value, expected_class, expected_serialization, expected_digest) in cases {
         assert_eq!(value.canonical_serialization(), expected_serialization);
         assert_eq!(
             value.canonical_bytes(),
             expected_serialization.as_bytes().to_vec()
         );
         assert_eq!(value.stable_canonical_digest(), expected_digest);
+
+        let payload = value.exact_value_payload();
+        assert_eq!(value.value_class(), expected_class);
+        assert_eq!(payload.value_class, expected_class);
+        assert_eq!(payload.canonical_serialization, expected_serialization);
+        assert_eq!(payload.digest, expected_digest);
+        assert_eq!(payload.dyadic, value.try_to_dyadic());
     }
 }
 
@@ -59,6 +87,16 @@ fn canonical_identity_reduces_dyadic_numbers() {
         integer.stable_canonical_digest(),
         more_unreduced_dyadic.stable_canonical_digest()
     );
+
+    for value in [integer, unreduced_dyadic, more_unreduced_dyadic] {
+        let payload = value.exact_value_payload();
+
+        assert_eq!(payload.value_class, ExactValueClass::Number);
+        assert_eq!(payload.value_class.as_str(), "number");
+        assert_eq!(payload.canonical_serialization, "Number(1/2^0)");
+        assert_eq!(payload.digest, "ae089d57cfab8fe7");
+        assert_eq!(payload.dyadic, Some(DyadicRational::new(1, 0)));
+    }
 }
 
 #[test]

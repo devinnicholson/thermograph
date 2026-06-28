@@ -3,6 +3,7 @@ mod fixtures {
 }
 
 use fixtures::golden_values::golden_values;
+use thermograph::ExactValueClass;
 
 const EPSILON: f32 = 1e-6;
 
@@ -51,6 +52,73 @@ fn golden_numeric_values_are_explicit() {
             }
         }
     }
+}
+
+#[test]
+fn golden_exact_payload_marks_supported_dyadic_boundary() {
+    for case in golden_values() {
+        let payload = case.value.exact_value_payload();
+
+        assert_eq!(
+            payload.value_class,
+            case.value.value_class(),
+            "{} value class should come from the public contract",
+            case.name,
+        );
+        assert_eq!(
+            payload.canonical_serialization,
+            case.value.canonical_serialization(),
+            "{} canonical serialization changed",
+            case.name,
+        );
+        assert_eq!(
+            payload.digest,
+            case.value.stable_canonical_digest(),
+            "{} digest changed",
+            case.name,
+        );
+
+        match case.value.try_to_dyadic() {
+            Some(dyadic) => {
+                assert_eq!(payload.value_class, ExactValueClass::Number);
+                assert_eq!(
+                    payload.dyadic,
+                    Some(dyadic),
+                    "{} should expose normalized exact dyadic data",
+                    case.name,
+                );
+            }
+            None => {
+                assert_ne!(
+                    payload.value_class,
+                    ExactValueClass::Number,
+                    "{} should not be classified as an exact number",
+                    case.name,
+                );
+                assert_eq!(
+                    payload.dyadic, None,
+                    "{} should not expose unsupported exact dyadic data",
+                    case.name,
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn golden_thermograph_mean_does_not_imply_exact_numeric_value() {
+    let hot_case = golden_values()
+        .into_iter()
+        .find(|case| case.name == "hot_one_minus_one")
+        .expect("hot_one_minus_one fixture should exist");
+    let (temperature, mean) = hot_case.value.thermograph();
+    let payload = hot_case.value.exact_value_payload();
+
+    assert_close(temperature, 1.0, hot_case.name, "temperature");
+    assert_close(mean, 0.0, hot_case.name, "mean");
+    assert_eq!(hot_case.value.try_to_f32(), None);
+    assert_eq!(payload.value_class, ExactValueClass::GameTree);
+    assert_eq!(payload.dyadic, None);
 }
 
 #[test]

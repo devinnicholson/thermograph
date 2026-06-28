@@ -1,7 +1,11 @@
 //! Thermograph: Combinatorial Game Theory & Surreal Numbers in Rust
 //!
-//! Provides mathematically rigorous canonical forms for game trees,
-//! surreal numbers, and infinitesimal values like *, ^, and v.
+//! Provides thermograph utilities and stable canonical structural identities
+//! for game trees, dyadic numbers, and infinitesimal values like *, ^, and v.
+//!
+//! Canonical identity in this crate normalizes represented structure only. It
+//! is suitable for stable labels and digests, but it is not a proof of full CGT
+//! equivalence between arbitrary game trees.
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum CGTValue {
@@ -14,6 +18,51 @@ pub enum CGTValue {
         left: Vec<CGTValue>,
         right: Vec<CGTValue>,
     },
+}
+
+/// Stable value-class labels for `partizan.dataset_label.v0` exact-value payloads.
+///
+/// `Number` is the only class with a supported exact dyadic numeric value. For
+/// `Star`, `Up`, `Down`, and `GameTree`, the public exact contract is limited to
+/// canonical structural identity: value class, serialization, and digest.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExactValueClass {
+    Number,
+    Star,
+    Up,
+    Down,
+    GameTree,
+}
+
+impl ExactValueClass {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            ExactValueClass::Number => "number",
+            ExactValueClass::Star => "star",
+            ExactValueClass::Up => "up",
+            ExactValueClass::Down => "down",
+            ExactValueClass::GameTree => "game_tree",
+        }
+    }
+}
+
+/// Public exact-value payload for dataset labels.
+///
+/// The fields map directly to `partizan.dataset_label.v0` `exact.value` data:
+/// a stable class, canonical serialization, digest of that serialization, and
+/// exact dyadic data when the represented value is currently supported as an
+/// exact number.
+///
+/// This payload intentionally does not claim full CGT equivalence for arbitrary
+/// game trees. For non-numeric classes, `dyadic` is `None` even when an
+/// approximate thermograph mean is available through the existing f32 APIs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExactValuePayload {
+    pub value_class: ExactValueClass,
+    pub canonical_serialization: String,
+    pub digest: String,
+    pub dyadic: Option<DyadicRational>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -332,6 +381,33 @@ impl CGTValue {
             CGTValue::Integer(i) => Some(DyadicRational::new(*i, 0)),
             CGTValue::Dyadic(num, den) => Some(DyadicRational::new(*num, *den)),
             _ => None,
+        }
+    }
+
+    #[must_use]
+    pub fn value_class(&self) -> ExactValueClass {
+        match self {
+            CGTValue::Integer(_) | CGTValue::Dyadic(_, _) => ExactValueClass::Number,
+            CGTValue::Star => ExactValueClass::Star,
+            CGTValue::Up => ExactValueClass::Up,
+            CGTValue::Down => ExactValueClass::Down,
+            CGTValue::GameTree { .. } => ExactValueClass::GameTree,
+        }
+    }
+
+    /// Returns stable exact-value fields suitable for
+    /// `partizan.dataset_label.v0` `exact.value`.
+    ///
+    /// Integer and dyadic values include exact normalized dyadic data. Other
+    /// value classes include canonical structural identity only; callers should
+    /// not infer an exact numeric value from thermograph f32 outputs.
+    #[must_use]
+    pub fn exact_value_payload(&self) -> ExactValuePayload {
+        ExactValuePayload {
+            value_class: self.value_class(),
+            canonical_serialization: self.canonical_serialization(),
+            digest: self.stable_canonical_digest(),
+            dyadic: self.try_to_dyadic(),
         }
     }
 
