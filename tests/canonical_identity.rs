@@ -47,6 +47,15 @@ fn canonical_serialization_and_digest_are_stable_for_core_values() {
         ),
         (
             CGTValue::GameTree {
+                left: vec![CGTValue::Integer(1)],
+                right: vec![CGTValue::Integer(-1)],
+            },
+            ExactValueClass::Switch,
+            "GameTree(L[Number(1/2^0)];R[Number(-1/2^0)])",
+            "0cc26090a9cea850",
+        ),
+        (
+            CGTValue::GameTree {
                 left: vec![CGTValue::Star, CGTValue::Integer(1)],
                 right: vec![CGTValue::Down, CGTValue::Integer(-1)],
             },

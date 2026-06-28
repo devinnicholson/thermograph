@@ -23,14 +23,16 @@ pub enum CGTValue {
 /// Stable value-class labels for `partizan.dataset_label.v0` exact-value payloads.
 ///
 /// `Number` is the only class with a supported exact dyadic numeric value. For
-/// `Star`, `Up`, `Down`, and `GameTree`, the public exact contract is limited to
-/// canonical structural identity: value class, serialization, and digest.
+/// `Star`, `Up`, `Down`, `Switch`, and `GameTree`, the public exact contract is
+/// limited to canonical structural identity: value class, serialization, and
+/// digest.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExactValueClass {
     Number,
     Star,
     Up,
     Down,
+    Switch,
     GameTree,
 }
 
@@ -42,6 +44,7 @@ impl ExactValueClass {
             ExactValueClass::Star => "star",
             ExactValueClass::Up => "up",
             ExactValueClass::Down => "down",
+            ExactValueClass::Switch => "switch",
             ExactValueClass::GameTree => "game_tree",
         }
     }
@@ -391,6 +394,9 @@ impl CGTValue {
             CGTValue::Star => ExactValueClass::Star,
             CGTValue::Up => ExactValueClass::Up,
             CGTValue::Down => ExactValueClass::Down,
+            CGTValue::GameTree { left, right } if is_simple_switch(left, right) => {
+                ExactValueClass::Switch
+            }
             CGTValue::GameTree { .. } => ExactValueClass::GameTree,
         }
     }
@@ -774,6 +780,32 @@ impl CGTValue {
             right: final_r,
         }
     }
+}
+
+fn is_simple_switch(left: &[CGTValue], right: &[CGTValue]) -> bool {
+    if left.len() != 1 || right.len() != 1 {
+        return false;
+    }
+
+    let Some(left_value) = left[0].try_to_dyadic() else {
+        return false;
+    };
+    let Some(right_value) = right[0].try_to_dyadic() else {
+        return false;
+    };
+
+    dyadic_greater_than(left_value, right_value)
+}
+
+fn dyadic_greater_than(left: DyadicRational, right: DyadicRational) -> bool {
+    let scale = left.denominator_power.max(right.denominator_power);
+    if scale <= 120 {
+        let left_scaled = i128::from(left.numerator) << (scale - left.denominator_power);
+        let right_scaled = i128::from(right.numerator) << (scale - right.denominator_power);
+        return left_scaled > right_scaled;
+    }
+
+    left.to_f32() > right.to_f32()
 }
 
 #[cfg(test)]

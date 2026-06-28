@@ -117,7 +117,7 @@ fn golden_thermograph_mean_does_not_imply_exact_numeric_value() {
     assert_close(temperature, 1.0, hot_case.name, "temperature");
     assert_close(mean, 0.0, hot_case.name, "mean");
     assert_eq!(hot_case.value.try_to_f32(), None);
-    assert_eq!(payload.value_class, ExactValueClass::GameTree);
+    assert_eq!(payload.value_class, ExactValueClass::Switch);
     assert_eq!(payload.dyadic, None);
 }
 
