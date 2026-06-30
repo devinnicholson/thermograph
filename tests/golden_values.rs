@@ -3,9 +3,29 @@ mod fixtures {
 }
 
 use fixtures::golden_values::golden_values;
-use thermograph::ExactValueClass;
+use thermograph::{CGTValue, ExactValueClass};
 
 const EPSILON: f32 = 1e-6;
+
+#[derive(Debug, PartialEq, Eq)]
+enum BmcomposeApproximateComposition {
+    Unsupported,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct BmcomposeComponentContract {
+    value_digest: String,
+    approximate_composition: BmcomposeApproximateComposition,
+}
+
+fn bmcompose_component_contract(value: &CGTValue) -> BmcomposeComponentContract {
+    let payload = value.exact_value_payload();
+
+    BmcomposeComponentContract {
+        value_digest: payload.digest,
+        approximate_composition: BmcomposeApproximateComposition::Unsupported,
+    }
+}
 
 fn assert_close(actual: f32, expected: f32, case_name: &str, field_name: &str) {
     assert!(
@@ -102,6 +122,82 @@ fn golden_exact_payload_marks_supported_dyadic_boundary() {
                 );
             }
         }
+    }
+}
+
+#[test]
+fn bmcompose_component_value_digest_uses_exact_payload_digest() {
+    for case in golden_values() {
+        let component = bmcompose_component_contract(&case.value);
+
+        assert_eq!(
+            component.value_digest,
+            case.value.exact_value_payload().digest,
+            "{} BMCOMPOSE component value_digest must come from exact_value_payload().digest",
+            case.name,
+        );
+        assert_eq!(
+            component.approximate_composition,
+            BmcomposeApproximateComposition::Unsupported,
+            "{} BMCOMPOSE approximate composition should be explicit when unsupported",
+            case.name,
+        );
+    }
+}
+
+#[test]
+fn bmcompose_payload_bytes_remain_stable_for_supported_component_classes() {
+    let cases = [
+        (
+            "number",
+            CGTValue::Dyadic(1, 1),
+            ExactValueClass::Number,
+            b"Number(1/2^1)".to_vec(),
+            "ae0c0157cfae6faa",
+        ),
+        (
+            "switch",
+            CGTValue::GameTree {
+                left: vec![CGTValue::Integer(1)],
+                right: vec![CGTValue::Integer(-1)],
+            },
+            ExactValueClass::Switch,
+            b"GameTree(L[Number(1/2^0)];R[Number(-1/2^0)])".to_vec(),
+            "0cc26090a9cea850",
+        ),
+        (
+            "game_tree",
+            CGTValue::GameTree {
+                left: vec![CGTValue::Star, CGTValue::Integer(1)],
+                right: vec![CGTValue::Down, CGTValue::Integer(-1)],
+            },
+            ExactValueClass::GameTree,
+            b"GameTree(L[Number(1/2^0),Star];R[Down,Number(-1/2^0)])".to_vec(),
+            "c45a64ff05afdb7a",
+        ),
+    ];
+
+    for (name, value, expected_class, expected_bytes, expected_digest) in cases {
+        let payload = value.exact_value_payload();
+
+        assert_eq!(
+            payload.value_class, expected_class,
+            "{name} value class changed",
+        );
+        assert_eq!(
+            value.canonical_bytes(),
+            expected_bytes,
+            "{name} canonical payload bytes changed",
+        );
+        assert_eq!(
+            payload.digest, expected_digest,
+            "{name} exact payload digest changed",
+        );
+        assert_eq!(
+            bmcompose_component_contract(&value).value_digest,
+            expected_digest,
+            "{name} BMCOMPOSE value_digest changed",
+        );
     }
 }
 

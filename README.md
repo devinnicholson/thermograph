@@ -36,6 +36,18 @@ let game = CGTValue::GameTree {
 let temp = game.temperature();
 ```
 
+## Value-Digest Contract
+
+For `BMCOMPOSE` component labels, `value_digest` should be copied from
+`CGTValue::exact_value_payload().digest`. That digest is the stable digest of
+the value's canonical payload bytes; callers should not derive it from
+`temperature()`, `mean_value()`, `thermograph()`, or display text.
+
+The current byte-stability contract is pinned for exact numbers, simple
+switches, and structural game trees. Approximate composition is not implemented
+by this crate; downstream `BMCOMPOSE` payloads should mark it as unsupported (or
+omit it by schema) rather than hiding it behind an approximate thermograph mean.
+
 ## Research Context
 
 Thermograph is designed to replace traditional scalar loss functions in Reinforcement Learning (like MSE) with a Game-Theoretic Surreal Loss formulation, enabling Neural Networks to learn tactical volatility (temperature) explicitly.
