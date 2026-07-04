@@ -77,24 +77,28 @@ pub struct DyadicRational {
 impl DyadicRational {
     #[must_use]
     pub fn new(numerator: i32, denominator_power: u32) -> Self {
+        Self::try_new_i128(i128::from(numerator), denominator_power)
+            .expect("i32 numerator should fit after dyadic normalization")
+    }
+
+    #[must_use]
+    fn try_new_i128(mut numerator: i128, mut denominator_power: u32) -> Option<Self> {
         if numerator == 0 {
-            return Self {
+            return Some(Self {
                 numerator: 0,
                 denominator_power: 0,
-            };
+            });
         }
 
-        let mut numerator = numerator;
-        let mut denominator_power = denominator_power;
         while denominator_power > 0 && numerator % 2 == 0 {
             numerator /= 2;
             denominator_power -= 1;
         }
 
-        Self {
-            numerator,
+        Some(Self {
+            numerator: i32::try_from(numerator).ok()?,
             denominator_power,
-        }
+        })
     }
 
     #[must_use]
@@ -105,6 +109,56 @@ impl DyadicRational {
     #[must_use]
     pub fn denominator_power(&self) -> u32 {
         self.denominator_power
+    }
+
+    #[must_use]
+    pub fn is_zero(&self) -> bool {
+        self.numerator == 0
+    }
+
+    #[must_use]
+    pub fn checked_negate(&self) -> Option<Self> {
+        Self::try_new_i128(-i128::from(self.numerator), self.denominator_power)
+    }
+
+    #[must_use]
+    pub fn negate(&self) -> Self {
+        self.checked_negate()
+            .expect("dyadic negation should fit in i32 numerator")
+    }
+
+    #[must_use]
+    pub fn checked_add(&self, other: &Self) -> Option<Self> {
+        let denominator_power = self.denominator_power.max(other.denominator_power);
+        let left = checked_scale_dyadic_numerator(*self, denominator_power)?;
+        let right = checked_scale_dyadic_numerator(*other, denominator_power)?;
+        Self::try_new_i128(left.checked_add(right)?, denominator_power)
+    }
+
+    #[must_use]
+    pub fn add(&self, other: &Self) -> Self {
+        self.checked_add(other)
+            .expect("dyadic addition should fit in i32 numerator")
+    }
+
+    #[must_use]
+    pub fn checked_sub(&self, other: &Self) -> Option<Self> {
+        self.checked_add(&other.checked_negate()?)
+    }
+
+    #[must_use]
+    pub fn sub(&self, other: &Self) -> Self {
+        self.checked_sub(other)
+            .expect("dyadic subtraction should fit in i32 numerator")
+    }
+
+    #[must_use]
+    pub fn to_cgt_value(&self) -> CGTValue {
+        if self.denominator_power == 0 {
+            CGTValue::Integer(self.numerator)
+        } else {
+            CGTValue::Dyadic(self.numerator, self.denominator_power)
+        }
     }
 
     #[must_use]
@@ -119,8 +173,93 @@ impl DyadicRational {
     }
 }
 
+#[must_use]
+fn checked_scale_dyadic_numerator(dyadic: DyadicRational, denominator_power: u32) -> Option<i128> {
+    let shift = denominator_power.checked_sub(dyadic.denominator_power)?;
+    i128::from(dyadic.numerator).checked_shl(shift)
+}
+
 const FNV64_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV64_PRIME: u64 = 0x0000_0100_0000_01b3;
+const CANONICAL_PAYLOAD_V1_PREFIX: &[u8] = b"thermograph.canonical_payload.v1\n";
+
+const SHA256_INITIAL_STATE: [u32; 8] = [
+    0x6a09_e667,
+    0xbb67_ae85,
+    0x3c6e_f372,
+    0xa54f_f53a,
+    0x510e_527f,
+    0x9b05_688c,
+    0x1f83_d9ab,
+    0x5be0_cd19,
+];
+
+const SHA256_K: [u32; 64] = [
+    0x428a_2f98,
+    0x7137_4491,
+    0xb5c0_fbcf,
+    0xe9b5_dba5,
+    0x3956_c25b,
+    0x59f1_11f1,
+    0x923f_82a4,
+    0xab1c_5ed5,
+    0xd807_aa98,
+    0x1283_5b01,
+    0x2431_85be,
+    0x550c_7dc3,
+    0x72be_5d74,
+    0x80de_b1fe,
+    0x9bdc_06a7,
+    0xc19b_f174,
+    0xe49b_69c1,
+    0xefbe_4786,
+    0x0fc1_9dc6,
+    0x240c_a1cc,
+    0x2de9_2c6f,
+    0x4a74_84aa,
+    0x5cb0_a9dc,
+    0x76f9_88da,
+    0x983e_5152,
+    0xa831_c66d,
+    0xb003_27c8,
+    0xbf59_7fc7,
+    0xc6e0_0bf3,
+    0xd5a7_9147,
+    0x06ca_6351,
+    0x1429_2967,
+    0x27b7_0a85,
+    0x2e1b_2138,
+    0x4d2c_6dfc,
+    0x5338_0d13,
+    0x650a_7354,
+    0x766a_0abb,
+    0x81c2_c92e,
+    0x9272_2c85,
+    0xa2bf_e8a1,
+    0xa81a_664b,
+    0xc24b_8b70,
+    0xc76c_51a3,
+    0xd192_e819,
+    0xd699_0624,
+    0xf40e_3585,
+    0x106a_a070,
+    0x19a4_c116,
+    0x1e37_6c08,
+    0x2748_774c,
+    0x34b0_bcb5,
+    0x391c_0cb3,
+    0x4ed8_aa4a,
+    0x5b9c_ca4f,
+    0x682e_6ff3,
+    0x748f_82ee,
+    0x78a5_636f,
+    0x84c8_7814,
+    0x8cc7_0208,
+    0x90be_fffa,
+    0xa450_6ceb,
+    0xbef9_a3f7,
+    0xc671_78f2,
+];
 
 #[must_use]
 fn stable_hash_bytes(bytes: &[u8]) -> u64 {
@@ -130,6 +269,103 @@ fn stable_hash_bytes(bytes: &[u8]) -> u64 {
         hash = hash.wrapping_mul(FNV64_PRIME);
     }
     hash
+}
+
+#[must_use]
+fn sha256_digest(bytes: &[u8]) -> [u8; 32] {
+    let bit_len = u64::try_from(bytes.len())
+        .expect("canonical payload length should fit in u64")
+        .checked_mul(8)
+        .expect("canonical payload bit length should fit in u64");
+    let mut message = bytes.to_vec();
+    message.push(0x80);
+    while message.len() % 64 != 56 {
+        message.push(0);
+    }
+    message.extend_from_slice(&bit_len.to_be_bytes());
+
+    let mut state = SHA256_INITIAL_STATE;
+    for chunk in message.chunks_exact(64) {
+        let mut schedule = [0_u32; 64];
+        for (i, word) in schedule.iter_mut().take(16).enumerate() {
+            let offset = i * 4;
+            *word = u32::from_be_bytes([
+                chunk[offset],
+                chunk[offset + 1],
+                chunk[offset + 2],
+                chunk[offset + 3],
+            ]);
+        }
+        for i in 16..64 {
+            let s0 = schedule[i - 15].rotate_right(7)
+                ^ schedule[i - 15].rotate_right(18)
+                ^ (schedule[i - 15] >> 3);
+            let s1 = schedule[i - 2].rotate_right(17)
+                ^ schedule[i - 2].rotate_right(19)
+                ^ (schedule[i - 2] >> 10);
+            schedule[i] = schedule[i - 16]
+                .wrapping_add(s0)
+                .wrapping_add(schedule[i - 7])
+                .wrapping_add(s1);
+        }
+
+        let mut a = state[0];
+        let mut b = state[1];
+        let mut c = state[2];
+        let mut d = state[3];
+        let mut e = state[4];
+        let mut f = state[5];
+        let mut g = state[6];
+        let mut h = state[7];
+
+        for i in 0..64 {
+            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+            let ch = (e & f) ^ ((!e) & g);
+            let temp1 = h
+                .wrapping_add(s1)
+                .wrapping_add(ch)
+                .wrapping_add(SHA256_K[i])
+                .wrapping_add(schedule[i]);
+            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+            let maj = (a & b) ^ (a & c) ^ (b & c);
+            let temp2 = s0.wrapping_add(maj);
+
+            h = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(temp1);
+            d = c;
+            c = b;
+            b = a;
+            a = temp1.wrapping_add(temp2);
+        }
+
+        state[0] = state[0].wrapping_add(a);
+        state[1] = state[1].wrapping_add(b);
+        state[2] = state[2].wrapping_add(c);
+        state[3] = state[3].wrapping_add(d);
+        state[4] = state[4].wrapping_add(e);
+        state[5] = state[5].wrapping_add(f);
+        state[6] = state[6].wrapping_add(g);
+        state[7] = state[7].wrapping_add(h);
+    }
+
+    let mut digest = [0_u8; 32];
+    for (i, word) in state.iter().enumerate() {
+        digest[i * 4..i * 4 + 4].copy_from_slice(&word.to_be_bytes());
+    }
+    digest
+}
+
+#[must_use]
+fn hex_lower(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = Vec::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        output.push(HEX[usize::from(byte >> 4)]);
+        output.push(HEX[usize::from(byte & 0x0f)]);
+    }
+    String::from_utf8(output).expect("hex bytes are valid UTF-8")
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -468,6 +704,21 @@ impl CGTValue {
     }
 
     #[must_use]
+    pub fn canonical_payload_v1_bytes(&self) -> Vec<u8> {
+        let canonical_serialization = self.canonical_serialization();
+        let mut bytes =
+            Vec::with_capacity(CANONICAL_PAYLOAD_V1_PREFIX.len() + canonical_serialization.len());
+        bytes.extend_from_slice(CANONICAL_PAYLOAD_V1_PREFIX);
+        bytes.extend_from_slice(canonical_serialization.as_bytes());
+        bytes
+    }
+
+    #[must_use]
+    pub fn digest_v1_sha256(&self) -> String {
+        hex_lower(&sha256_digest(&self.canonical_payload_v1_bytes()))
+    }
+
+    #[must_use]
     pub fn options(&self) -> (Vec<CGTValue>, Vec<CGTValue>) {
         match self {
             CGTValue::Integer(n) => {
@@ -514,6 +765,84 @@ impl CGTValue {
             CGTValue::Down => (vec![CGTValue::Star], vec![CGTValue::Integer(0)]),
             CGTValue::GameTree { left, right } => (left.clone(), right.clone()),
         }
+    }
+
+    #[must_use]
+    pub fn negate(&self) -> Self {
+        if let Some(dyadic) = self.try_to_dyadic()
+            && let Some(negated) = dyadic.checked_negate()
+        {
+            return negated.to_cgt_value();
+        }
+
+        match self {
+            CGTValue::Integer(_) | CGTValue::Dyadic(_, _) => {
+                let (left, right) = self.options();
+                CGTValue::GameTree {
+                    left: right.iter().map(CGTValue::negate).collect(),
+                    right: left.iter().map(CGTValue::negate).collect(),
+                }
+            }
+            CGTValue::Star => CGTValue::Star,
+            CGTValue::Up => CGTValue::Down,
+            CGTValue::Down => CGTValue::Up,
+            CGTValue::GameTree { left, right } => CGTValue::GameTree {
+                left: right.iter().map(CGTValue::negate).collect(),
+                right: left.iter().map(CGTValue::negate).collect(),
+            },
+        }
+    }
+
+    #[must_use]
+    pub fn add(&self, other: &Self) -> Self {
+        if let (Some(left), Some(right)) = (self.try_to_dyadic(), other.try_to_dyadic())
+            && let Some(sum) = left.checked_add(&right)
+        {
+            return sum.to_cgt_value();
+        }
+
+        if self.try_to_dyadic().is_some_and(|dyadic| dyadic.is_zero()) {
+            return other.clone();
+        }
+        if other.try_to_dyadic().is_some_and(|dyadic| dyadic.is_zero()) {
+            return self.clone();
+        }
+
+        let (self_left, self_right) = self.options();
+        let (other_left, other_right) = other.options();
+        let mut left = Vec::with_capacity(self_left.len() + other_left.len());
+        let mut right = Vec::with_capacity(self_right.len() + other_right.len());
+
+        for option in self_left {
+            left.push(option.add(other));
+        }
+        for option in other_left {
+            left.push(self.add(&option));
+        }
+        for option in self_right {
+            right.push(option.add(other));
+        }
+        for option in other_right {
+            right.push(self.add(&option));
+        }
+
+        CGTValue::GameTree { left, right }
+    }
+
+    #[must_use]
+    pub fn sub(&self, other: &Self) -> Self {
+        self.add(&other.negate())
+    }
+
+    #[must_use]
+    pub fn sum_all<I, V>(values: I) -> Self
+    where
+        I: IntoIterator<Item = V>,
+        V: std::borrow::Borrow<CGTValue>,
+    {
+        values
+            .into_iter()
+            .fold(CGTValue::Integer(0), |sum, value| sum.add(value.borrow()))
     }
 
     #[must_use]
@@ -651,7 +980,10 @@ impl CGTValue {
 
     #[must_use]
     pub fn simplify(&self) -> Self {
-        let (left, right) = self.options();
+        let CGTValue::GameTree { left, right } = self else {
+            return self.clone();
+        };
+
         let l_simp: Vec<CGTValue> = left.iter().map(CGTValue::simplify).collect();
         let r_simp: Vec<CGTValue> = right.iter().map(CGTValue::simplify).collect();
 
@@ -811,6 +1143,14 @@ fn dyadic_greater_than(left: DyadicRational, right: DyadicRational) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_sha256_helper_matches_standard_vector() {
+        assert_eq!(
+            hex_lower(&sha256_digest(b"abc")),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        );
+    }
 
     #[test]
     fn test_simplify_one_minus_one() {

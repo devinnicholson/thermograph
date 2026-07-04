@@ -83,6 +83,43 @@ fn canonical_serialization_and_digest_are_stable_for_core_values() {
 }
 
 #[test]
+fn canonical_payload_v1_bytes_are_versioned_and_sha256_digest_is_stable() {
+    let cases = [
+        (
+            CGTValue::Dyadic(1, 1),
+            "Number(1/2^1)",
+            "ae0c0157cfae6faa",
+            "70fc7d1831b99b01d84159d7558ccef5b28efd1ab8071a283666e01c535dccbd",
+        ),
+        (
+            CGTValue::Star,
+            "Star",
+            "d98b59251f065471",
+            "3af68a355fca2793f09a34c7da705ba0078c03f063abe6ab5add40e65171b46f",
+        ),
+        (
+            CGTValue::GameTree {
+                left: vec![CGTValue::Integer(1)],
+                right: vec![CGTValue::Integer(-1)],
+            },
+            "GameTree(L[Number(1/2^0)];R[Number(-1/2^0)])",
+            "0cc26090a9cea850",
+            "21b7aaee2441a3fad0609285136f142d46256899b8e5f50ce25c73c5797f3c94",
+        ),
+    ];
+
+    for (value, expected_serialization, expected_stable_digest, expected_v1_digest) in cases {
+        let mut expected_payload = b"thermograph.canonical_payload.v1\n".to_vec();
+        expected_payload.extend_from_slice(expected_serialization.as_bytes());
+
+        assert_eq!(value.canonical_payload_v1_bytes(), expected_payload);
+        assert_eq!(value.digest_v1_sha256(), expected_v1_digest);
+        assert_eq!(value.stable_canonical_digest(), expected_stable_digest);
+        assert_eq!(value.canonical_bytes(), expected_serialization.as_bytes());
+    }
+}
+
+#[test]
 fn canonical_identity_reduces_dyadic_numbers() {
     let integer = CGTValue::Integer(1);
     let unreduced_dyadic = CGTValue::Dyadic(2, 1);

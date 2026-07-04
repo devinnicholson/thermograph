@@ -35,8 +35,7 @@ pub fn golden_values() -> Vec<GoldenValue> {
             expected_temperature: -1.0,
             expected_mean: 0.5,
             simplify_idempotent: true,
-            // Current simplify expands dyadics into game trees whose f32 thermographs are hotter.
-            simplify_preserves_thermograph: false,
+            simplify_preserves_thermograph: true,
         },
         GoldenValue {
             name: "star",
