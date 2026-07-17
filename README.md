@@ -53,7 +53,21 @@ convention. Standard infinitesimals in the fixture corpus have mean and
 temperature reported as `0.0`; their game identity is not thereby reduced to
 the number zero.
 
-## Example
+## Executable quickstart
+
+Run the checked switch example from a clean checkout:
+
+```text
+cargo run --locked --example switch
+```
+
+Expected output (to six decimal places):
+
+```text
+approximate temperature=1.000000 mean=0.000000 tolerance=0.000001
+```
+
+The example constructs the switch `{ 1 | -1 }`:
 
 ```rust
 use thermograph::CGTValue;
@@ -68,6 +82,10 @@ let approximation = game.approximate_thermograph();
 assert!((approximation.temperature - 1.0).abs() <= 1e-6);
 assert!((approximation.mean - 0.0).abs() <= 1e-6);
 ```
+
+These bounded checks validate this implementation's approximate `f32` result
+for one hand-computable fixture. They are not a claim of exact thermography or
+a proof that arbitrary game trees have been reduced to canonical form.
 
 Run all checks with a Rust 1.85 or newer toolchain:
 
