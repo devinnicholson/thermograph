@@ -2,5 +2,14 @@
 name = "thermograph"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+description = "Experimental combinatorial-game values and approximate thermography for finite normal-play games"
+repository = "https://github.com/devinnicholson/thermograph"
+homepage = "https://github.com/devinnicholson/thermograph"
+documentation = "https://docs.rs/thermograph"
+readme = "README.md"
+keywords = ["combinatorial-games", "game-theory", "thermograph", "surreal"]
+categories = ["algorithms", "mathematics", "science"]
+exclude = ["test_cgt.rs"]
 
 [dependencies]

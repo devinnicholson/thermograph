@@ -6,16 +6,40 @@
 //! Canonical identity in this crate normalizes represented structure only. It
 //! is suitable for stable labels and digests, but it is not a proof of full CGT
 //! equivalence between arbitrary game trees.
+//!
+//! Integer and dyadic atoms have exact arithmetic where the result fits the
+//! representation. Thermographs and scaffolds use [`f32`] and are approximate.
+//! The crate currently supports finite, loop-free, normal-play game trees; it
+//! does not implement draw, repetition, loopy-game, or misere semantics.
 
+#![deny(missing_docs)]
+
+/// A finite normal-play combinatorial-game value.
+///
+/// Named atoms provide convenient standard values. [`CGTValue::GameTree`]
+/// stores explicit Left and Right options. The type does not enforce finiteness
+/// or canonical form, so callers must avoid cyclic external constructions and
+/// should treat structural serialization separately from CGT equivalence.
 #[derive(Debug, Clone, PartialEq)]
 pub enum CGTValue {
+    /// The integer game with the given value.
     Integer(i32),
-    Dyadic(i32, u32), // e.g., 1/2, 3/4
-    Star,             // Nimber *
-    Up,               // ^
-    Down,             // v
+    /// A dyadic number `numerator / 2^denominator_power`.
+    ///
+    /// Construction does not normalize the stored fields. Numeric accessors and
+    /// structural serialization normalize the value.
+    Dyadic(i32, u32),
+    /// The nimber star, `* = {0 | 0}`.
+    Star,
+    /// The infinitesimal up, `up = {0 | *}`.
+    Up,
+    /// The infinitesimal down, `down = {* | 0}`.
+    Down,
+    /// An explicit game tree `{ left | right }`.
     GameTree {
+        /// Moves available to Left.
         left: Vec<CGTValue>,
+        /// Moves available to Right.
         right: Vec<CGTValue>,
     },
 }
@@ -28,15 +52,23 @@ pub enum CGTValue {
 /// digest.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExactValueClass {
+    /// An integer or dyadic rational with an exact numeric payload.
     Number,
+    /// The named game `*`.
     Star,
+    /// The named game `up`.
     Up,
+    /// The named game `down`.
     Down,
+    /// A one-left-option, one-right-option tree whose numeric left option is
+    /// strictly greater than its numeric right option.
     Switch,
+    /// Any other explicit structural game tree.
     GameTree,
 }
 
 impl ExactValueClass {
+    /// Returns the stable lowercase label used in dataset payloads.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -62,12 +94,22 @@ impl ExactValueClass {
 /// approximate thermograph mean is available through the existing f32 APIs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExactValuePayload {
+    /// Stable class of the represented value.
     pub value_class: ExactValueClass,
+    /// Normalized structural serialization used by the legacy digest.
     pub canonical_serialization: String,
+    /// Lowercase hexadecimal legacy FNV-1a digest of the serialization.
     pub digest: String,
+    /// Exact normalized dyadic value for [`ExactValueClass::Number`], otherwise
+    /// `None`.
     pub dyadic: Option<DyadicRational>,
 }
 
+/// An exact normalized dyadic rational `numerator / 2^denominator_power`.
+///
+/// Normalization removes factors of two and represents zero with denominator
+/// power zero. Operations return `None` from their checked variants if the
+/// normalized numerator cannot be represented as an [`i32`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DyadicRational {
     numerator: i32,
@@ -75,6 +117,12 @@ pub struct DyadicRational {
 }
 
 impl DyadicRational {
+    /// Constructs and normalizes a dyadic rational.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if normalization could not fit the supplied `i32`
+    /// numerator back into `i32`; this cannot occur for this constructor.
     #[must_use]
     pub fn new(numerator: i32, denominator_power: u32) -> Self {
         Self::try_new_i128(i128::from(numerator), denominator_power)
@@ -101,32 +149,42 @@ impl DyadicRational {
         })
     }
 
+    /// Returns the normalized numerator.
     #[must_use]
     pub fn numerator(&self) -> i32 {
         self.numerator
     }
 
+    /// Returns `k` in the normalized denominator `2^k`.
     #[must_use]
     pub fn denominator_power(&self) -> u32 {
         self.denominator_power
     }
 
+    /// Returns whether this value is exactly zero.
     #[must_use]
     pub fn is_zero(&self) -> bool {
         self.numerator == 0
     }
 
+    /// Returns the exact additive inverse, or `None` on `i32` overflow.
     #[must_use]
     pub fn checked_negate(&self) -> Option<Self> {
         Self::try_new_i128(-i128::from(self.numerator), self.denominator_power)
     }
 
+    /// Returns the exact additive inverse.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the normalized numerator cannot be negated in `i32`.
     #[must_use]
     pub fn negate(&self) -> Self {
         self.checked_negate()
             .expect("dyadic negation should fit in i32 numerator")
     }
 
+    /// Adds two dyadic rationals exactly, or returns `None` on overflow.
     #[must_use]
     pub fn checked_add(&self, other: &Self) -> Option<Self> {
         let denominator_power = self.denominator_power.max(other.denominator_power);
@@ -135,23 +193,35 @@ impl DyadicRational {
         Self::try_new_i128(left.checked_add(right)?, denominator_power)
     }
 
+    /// Adds two dyadic rationals exactly.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the normalized result does not fit in `i32`.
     #[must_use]
     pub fn add(&self, other: &Self) -> Self {
         self.checked_add(other)
             .expect("dyadic addition should fit in i32 numerator")
     }
 
+    /// Subtracts `other` exactly, or returns `None` on overflow.
     #[must_use]
     pub fn checked_sub(&self, other: &Self) -> Option<Self> {
         self.checked_add(&other.checked_negate()?)
     }
 
+    /// Subtracts `other` exactly.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the normalized result does not fit in `i32`.
     #[must_use]
     pub fn sub(&self, other: &Self) -> Self {
         self.checked_sub(other)
             .expect("dyadic subtraction should fit in i32 numerator")
     }
 
+    /// Converts this number to the corresponding integer or dyadic atom.
     #[must_use]
     pub fn to_cgt_value(&self) -> CGTValue {
         if self.denominator_power == 0 {
@@ -161,12 +231,14 @@ impl DyadicRational {
         }
     }
 
+    /// Converts this exact number to an approximate [`f32`].
     #[must_use]
     pub fn to_f32(&self) -> f32 {
         let den_i32 = i32::try_from(self.denominator_power).unwrap_or(i32::MAX);
         self.numerator as f32 / 2.0_f32.powi(den_i32)
     }
 
+    /// Returns the stable normalized number serialization.
     #[must_use]
     pub fn canonical_serialization(&self) -> String {
         format!("Number({}/2^{})", self.numerator, self.denominator_power)
@@ -368,13 +440,26 @@ fn hex_lower(bytes: &[u8]) -> String {
     String::from_utf8(output).expect("hex bytes are valid UTF-8")
 }
 
+/// An approximate piecewise-linear thermograph scaffold in `(temperature,
+/// value)` coordinates.
+///
+/// `points` must be ordered by increasing temperature for meaningful
+/// evaluation. The type keeps its fields public for compatibility and does not
+/// validate this invariant. All coordinates and slopes are approximate `f32`
+/// values.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PiecewiseLinear {
+    /// Breakpoints in `(temperature, value)` coordinates.
     pub points: Vec<(f32, f32)>,
+    /// Slope used after the last breakpoint.
     pub final_slope: f32,
 }
 
 impl PiecewiseLinear {
+    /// Evaluates the scaffold at `t` using linear interpolation or the final
+    /// ray.
+    ///
+    /// An empty scaffold evaluates to `0.0` for backward compatibility.
     #[must_use]
     pub fn eval(&self, t: f32) -> f32 {
         if self.points.is_empty() {
@@ -394,6 +479,7 @@ impl PiecewiseLinear {
         last.1 + self.final_slope * (t - last.0)
     }
 
+    /// Returns the scaffold obtained by subtracting `t` from every value.
     #[must_use]
     pub fn minus_t(&self) -> PiecewiseLinear {
         let points = self.points.iter().map(|&(t, y)| (t, y - t)).collect();
@@ -403,6 +489,7 @@ impl PiecewiseLinear {
         }
     }
 
+    /// Returns the scaffold obtained by adding `t` to every value.
     #[must_use]
     pub fn plus_t(&self) -> PiecewiseLinear {
         let points = self.points.iter().map(|&(t, y)| (t, y + t)).collect();
@@ -412,6 +499,11 @@ impl PiecewiseLinear {
         }
     }
 
+    /// Computes an approximate pointwise maximum or minimum.
+    ///
+    /// When `is_max` is true this computes the maximum; otherwise it computes
+    /// the minimum. Breakpoints closer than the implementation tolerances may
+    /// be merged.
     #[must_use]
     pub fn combine(a: &PiecewiseLinear, b: &PiecewiseLinear, is_max: bool) -> PiecewiseLinear {
         let mut t_candidates = Vec::new();
@@ -510,16 +602,23 @@ impl PiecewiseLinear {
         }
     }
 
+    /// Computes the approximate pointwise maximum of two scaffolds.
     #[must_use]
     pub fn max(a: &PiecewiseLinear, b: &PiecewiseLinear) -> PiecewiseLinear {
         Self::combine(a, b, true)
     }
 
+    /// Computes the approximate pointwise minimum of two scaffolds.
     #[must_use]
     pub fn min(a: &PiecewiseLinear, b: &PiecewiseLinear) -> PiecewiseLinear {
         Self::combine(a, b, false)
     }
 
+    /// Finds the first approximate intersection of the left and right
+    /// scaffolds.
+    ///
+    /// The returned pair is `(temperature, value)`. `(-1.0, 0.0)` is the
+    /// historical fallback if no intersection can be identified.
     #[must_use]
     pub fn intersect(left: &PiecewiseLinear, right: &PiecewiseLinear) -> (f32, f32) {
         let mut all_t = Vec::new();
@@ -581,6 +680,7 @@ impl PiecewiseLinear {
         (-1.0, 0.0)
     }
 
+    /// Truncates a scaffold at `(t_g, m_g)` and appends a horizontal ray.
     #[must_use]
     pub fn truncate(pwl: &PiecewiseLinear, t_g: f32, m_g: f32) -> PiecewiseLinear {
         let mut new_points = Vec::new();
@@ -597,23 +697,48 @@ impl PiecewiseLinear {
     }
 }
 
+/// Approximate floating-point thermograph data for a game.
+///
+/// The mean, temperature, scaffold coordinates, and slopes all use [`f32`].
+/// Equality of this structure is not exact CGT equality. See
+/// [`CGTValue::approximate_thermograph`] for domain restrictions.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ApproximateThermograph {
+    /// Approximate temperature at which the left and right scaffolds meet.
+    pub temperature: f32,
+    /// Approximate mean value at the meeting point.
+    pub mean: f32,
+    /// Approximate truncated left scaffold.
+    pub left_scaffold: Option<PiecewiseLinear>,
+    /// Approximate truncated right scaffold.
+    pub right_scaffold: Option<PiecewiseLinear>,
+}
+
 impl CGTValue {
+    /// Returns whether this is an integer or dyadic numeric atom.
     #[must_use]
     pub fn is_number(&self) -> bool {
         matches!(self, CGTValue::Integer(_) | CGTValue::Dyadic(_, _))
     }
 
+    /// Returns an approximate `f32` only for integer and dyadic atoms.
     #[must_use]
     pub fn try_to_f32(&self) -> Option<f32> {
         self.try_to_dyadic().map(|dyadic| dyadic.to_f32())
     }
 
+    /// Converts an integer or dyadic atom to an approximate `f32`.
+    ///
+    /// # Panics
+    ///
+    /// Panics for `Star`, `Up`, `Down`, and explicit game trees.
     #[must_use]
     pub fn to_f32(&self) -> f32 {
         self.try_to_f32()
             .expect("CGTValue::to_f32 requires Integer or Dyadic")
     }
 
+    /// Returns the exact normalized dyadic value of a numeric atom.
     #[must_use]
     pub fn try_to_dyadic(&self) -> Option<DyadicRational> {
         match self {
@@ -623,6 +748,10 @@ impl CGTValue {
         }
     }
 
+    /// Classifies this value for the stable exact-value payload contract.
+    ///
+    /// `Switch` classification is structural and requires exactly one numeric
+    /// option for each player with the Left value greater than the Right value.
     #[must_use]
     pub fn value_class(&self) -> ExactValueClass {
         match self {
@@ -653,6 +782,12 @@ impl CGTValue {
         }
     }
 
+    /// Returns a deterministic structural serialization.
+    ///
+    /// Numeric atoms are normalized, while option lists are recursively
+    /// serialized, sorted, and deduplicated. Despite the historical
+    /// `canonical` name, this is not a canonical form modulo CGT equality:
+    /// dominated and reversible options are not removed by this method.
     #[must_use]
     pub fn canonical_serialization(&self) -> String {
         if let Some(dyadic) = self.try_to_dyadic() {
@@ -688,21 +823,33 @@ impl CGTValue {
         }
     }
 
+    /// Returns the UTF-8 bytes of [`Self::canonical_serialization`].
     #[must_use]
     pub fn canonical_bytes(&self) -> Vec<u8> {
         self.canonical_serialization().into_bytes()
     }
 
+    /// Returns the legacy deterministic 64-bit FNV-1a structural hash.
+    ///
+    /// This value is retained for dataset compatibility. It is not
+    /// collision-resistant; use [`Self::digest_v1_sha256`] when that property
+    /// matters.
     #[must_use]
     pub fn stable_canonical_hash(&self) -> u64 {
         stable_hash_bytes(&self.canonical_bytes())
     }
 
+    /// Returns [`Self::stable_canonical_hash`] as 16 lowercase hexadecimal
+    /// digits.
     #[must_use]
     pub fn stable_canonical_digest(&self) -> String {
         format!("{:016x}", self.stable_canonical_hash())
     }
 
+    /// Returns the domain-separated version-one canonical payload bytes.
+    ///
+    /// The bytes are the fixed prefix `thermograph.canonical_payload.v1\n`
+    /// followed by [`Self::canonical_serialization`].
     #[must_use]
     pub fn canonical_payload_v1_bytes(&self) -> Vec<u8> {
         let canonical_serialization = self.canonical_serialization();
@@ -713,11 +860,17 @@ impl CGTValue {
         bytes
     }
 
+    /// Returns the SHA-256 digest of [`Self::canonical_payload_v1_bytes`] as
+    /// lowercase hexadecimal.
     #[must_use]
     pub fn digest_v1_sha256(&self) -> String {
         hex_lower(&sha256_digest(&self.canonical_payload_v1_bytes()))
     }
 
+    /// Expands this value into its immediate Left and Right options.
+    ///
+    /// Integer and dyadic atoms use their standard simplest numeric options;
+    /// named atoms use their defining options; explicit trees are cloned.
     #[must_use]
     pub fn options(&self) -> (Vec<CGTValue>, Vec<CGTValue>) {
         match self {
@@ -767,12 +920,17 @@ impl CGTValue {
         }
     }
 
+    /// Returns the normal-play additive inverse.
+    ///
+    /// Numeric atoms remain numeric when the exact negation fits. For an
+    /// explicit tree, Left and Right options are swapped and recursively
+    /// negated.
     #[must_use]
     pub fn negate(&self) -> Self {
-        if let Some(dyadic) = self.try_to_dyadic()
-            && let Some(negated) = dyadic.checked_negate()
-        {
-            return negated.to_cgt_value();
+        if let Some(dyadic) = self.try_to_dyadic() {
+            if let Some(negated) = dyadic.checked_negate() {
+                return negated.to_cgt_value();
+            }
         }
 
         match self {
@@ -793,12 +951,16 @@ impl CGTValue {
         }
     }
 
+    /// Returns the disjunctive sum of two values.
+    ///
+    /// Numeric atoms are added exactly when possible. Other values are expanded
+    /// structurally; the returned tree is not automatically simplified.
     #[must_use]
     pub fn add(&self, other: &Self) -> Self {
-        if let (Some(left), Some(right)) = (self.try_to_dyadic(), other.try_to_dyadic())
-            && let Some(sum) = left.checked_add(&right)
-        {
-            return sum.to_cgt_value();
+        if let (Some(left), Some(right)) = (self.try_to_dyadic(), other.try_to_dyadic()) {
+            if let Some(sum) = left.checked_add(&right) {
+                return sum.to_cgt_value();
+            }
         }
 
         if self.try_to_dyadic().is_some_and(|dyadic| dyadic.is_zero()) {
@@ -829,11 +991,13 @@ impl CGTValue {
         CGTValue::GameTree { left, right }
     }
 
+    /// Returns `self + (-other)`.
     #[must_use]
     pub fn sub(&self, other: &Self) -> Self {
         self.add(&other.negate())
     }
 
+    /// Sums an iterator of borrowed or owned values from the zero game.
     #[must_use]
     pub fn sum_all<I, V>(values: I) -> Self
     where
@@ -845,6 +1009,10 @@ impl CGTValue {
             .fold(CGTValue::Integer(0), |sum, value| sum.add(value.borrow()))
     }
 
+    /// Tests the recursive normal-play relation `self >= other`.
+    ///
+    /// This direct algorithm has no memoization or hard resource bound and can
+    /// be expensive for deep or highly branching trees.
     #[must_use]
     pub fn ge(&self, other: &Self) -> bool {
         let (_, x_r) = self.options();
@@ -862,22 +1030,33 @@ impl CGTValue {
         true
     }
 
+    /// Tests the recursive normal-play relation `self <= other`.
     #[must_use]
     pub fn le(&self, other: &Self) -> bool {
         other.ge(self)
     }
 
+    /// Computes approximate floating-point thermograph data.
+    ///
+    /// This method operates on finite normal-play trees. All breakpoints,
+    /// slopes, means, and temperatures use [`f32`], and nearby breakpoints may
+    /// be merged using implementation tolerances. It is not an exact rational
+    /// thermograph and has not been independently validated for arbitrary game
+    /// trees. Number atoms use temperature `-1.0` by crate convention.
     #[must_use]
-    pub fn exact_thermograph(
-        &self,
-    ) -> (f32, f32, Option<PiecewiseLinear>, Option<PiecewiseLinear>) {
+    pub fn approximate_thermograph(&self) -> ApproximateThermograph {
         if self.is_number() {
             let m = self.to_f32();
             let pwl = PiecewiseLinear {
                 points: vec![(-1.0, m)],
                 final_slope: 0.0,
             };
-            return (-1.0, m, Some(pwl.clone()), Some(pwl));
+            return ApproximateThermograph {
+                temperature: -1.0,
+                mean: m,
+                left_scaffold: Some(pwl.clone()),
+                right_scaffold: Some(pwl),
+            };
         }
         let (left, right) = self.options();
         if left.is_empty() && right.is_empty() {
@@ -885,21 +1064,26 @@ impl CGTValue {
                 points: vec![(-1.0, 0.0)],
                 final_slope: 0.0,
             };
-            return (-1.0, 0.0, Some(pwl.clone()), Some(pwl));
+            return ApproximateThermograph {
+                temperature: -1.0,
+                mean: 0.0,
+                left_scaffold: Some(pwl.clone()),
+                right_scaffold: Some(pwl),
+            };
         }
 
         let mut left_scaffolds = Vec::new();
         for l in left {
-            let (_, _, _, r_scaffold) = l.exact_thermograph();
-            if let Some(r) = r_scaffold {
+            let child = l.approximate_thermograph();
+            if let Some(r) = child.right_scaffold {
                 left_scaffolds.push(r.minus_t());
             }
         }
 
         let mut right_scaffolds = Vec::new();
         for r in right {
-            let (_, _, l_scaffold, _) = r.exact_thermograph();
-            if let Some(l) = l_scaffold {
+            let child = r.approximate_thermograph();
+            if let Some(l) = child.left_scaffold {
                 right_scaffolds.push(l.plus_t());
             }
         }
@@ -933,51 +1117,96 @@ impl CGTValue {
             },
         });
 
-        (t_g, m_g, final_l, final_r)
+        ApproximateThermograph {
+            temperature: t_g,
+            mean: m_g,
+            left_scaffold: final_l,
+            right_scaffold: final_r,
+        }
     }
 
+    /// Computes the historical approximate thermograph tuple.
+    ///
+    /// This compatibility wrapper is deprecated because its name incorrectly
+    /// implied exact rational geometry. Use [`Self::approximate_thermograph`].
+    #[deprecated(
+        since = "0.1.0",
+        note = "returns f32 approximations; use approximate_thermograph"
+    )]
+    #[must_use]
+    pub fn exact_thermograph(
+        &self,
+    ) -> (f32, f32, Option<PiecewiseLinear>, Option<PiecewiseLinear>) {
+        let approximation = self.approximate_thermograph();
+        (
+            approximation.temperature,
+            approximation.mean,
+            approximation.left_scaffold,
+            approximation.right_scaffold,
+        )
+    }
+
+    /// Returns the approximate `(temperature, mean)` pair.
+    ///
+    /// This compact compatibility API uses the same [`f32`] calculation as
+    /// [`Self::approximate_thermograph`].
     #[must_use]
     pub fn thermograph(&self) -> (f32, f32) {
-        let (t_g, m_g, _, _) = self.exact_thermograph();
-        (t_g, m_g)
+        let approximation = self.approximate_thermograph();
+        (approximation.temperature, approximation.mean)
     }
 
+    /// Returns the approximate temperature.
+    ///
+    /// Numeric atoms use `-1.0` by crate convention.
     #[must_use]
     pub fn temperature(&self) -> f32 {
         self.thermograph().0
     }
 
+    /// Returns the approximate thermograph mean.
     #[must_use]
     pub fn mean_value(&self) -> f32 {
         self.thermograph().1
     }
 
+    /// Evaluates the approximate left scaffold at temperature `t`.
+    ///
+    /// Returns negative infinity if no left scaffold is available.
     #[must_use]
     pub fn left_scaffold(&self, t: f32) -> f32 {
         if self.is_number() {
             return self.to_f32();
         }
-        let (_, _, l_scaffold, _) = self.exact_thermograph();
-        if let Some(l) = l_scaffold {
+        let approximation = self.approximate_thermograph();
+        if let Some(l) = approximation.left_scaffold {
             l.eval(t)
         } else {
             f32::NEG_INFINITY
         }
     }
 
+    /// Evaluates the approximate right scaffold at temperature `t`.
+    ///
+    /// Returns positive infinity if no right scaffold is available.
     #[must_use]
     pub fn right_scaffold(&self, t: f32) -> f32 {
         if self.is_number() {
             return self.to_f32();
         }
-        let (_, _, _, r_scaffold) = self.exact_thermograph();
-        if let Some(r) = r_scaffold {
+        let approximation = self.approximate_thermograph();
+        if let Some(r) = approximation.right_scaffold {
             r.eval(t)
         } else {
             f32::INFINITY
         }
     }
 
+    /// Applies recursive reversible-option bypassing and domination removal.
+    ///
+    /// Atomic values are returned unchanged. The routine is intended for
+    /// finite normal-play trees and is not certified as a complete canonical
+    /// form algorithm for arbitrary games. It has no hard resource bound.
     #[must_use]
     pub fn simplify(&self) -> Self {
         let CGTValue::GameTree { left, right } = self else {

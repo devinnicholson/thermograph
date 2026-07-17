@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using this metadata."
+title: "Thermograph: experimental combinatorial-game values and approximate thermography"
+type: software
+version: 0.1.0
+authors:
+  - family-names: Nicholson
+    given-names: Devin
+repository-code: "https://github.com/devinnicholson/thermograph"
+url: "https://github.com/devinnicholson/thermograph"
+abstract: >-
+  A Rust research prototype for exact dyadic-number arithmetic, stable
+  structural game-tree payloads, named infinitesimals, and approximate
+  floating-point thermography of finite normal-play combinatorial games.
+keywords:
+  - combinatorial game theory
+  - thermography
+  - surreal numbers
+  - reproducible research
