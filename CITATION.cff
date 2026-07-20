@@ -3,6 +3,9 @@ message: "If you use this software, please cite it using this metadata."
 title: "Thermograph: experimental combinatorial-game values and approximate thermography"
 type: software
 version: 0.1.0
+license:
+  - MIT
+  - Apache-2.0
 authors:
   - family-names: Nicholson
     given-names: Devin

@@ -130,3 +130,12 @@ The crate was created to investigate whether structural game values and
 temperature-like features can be useful in chess-oriented learning systems.
 That is a research hypothesis, not an empirical performance claim. See
 `CHANGELOG.md` for API history and `CONTRIBUTING.md` for validation expectations.
+
+## License
+
+Thermograph has no GPL dependency, so it is dual-licensed under either of:
+
+- [MIT license](LICENSE-MIT)
+- [Apache License, Version 2.0](LICENSE-APACHE)
+
+at your option.

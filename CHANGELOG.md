@@ -20,6 +20,10 @@ intended to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Package metadata now states the supported scope and minimum Rust version.
 - The README no longer presents structural normalization as full CGT canonical
   equivalence or thermography as exact for arbitrary game trees.
+- Licensed the crate dual MIT OR Apache-2.0. Thermograph has no dependencies
+  and no GPL constraint, so it uses the ecosystem's standard permissive
+  convention rather than the copyleft terms used elsewhere in this project
+  family.
 
 ### Deprecated
 

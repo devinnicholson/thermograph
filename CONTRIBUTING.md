@@ -5,10 +5,11 @@ numerical contracts easier to inspect, reproduce, and falsify.
 
 ## Before contributing
 
-The repository owner has not yet finalized a software license. External
-contributions should not be solicited or merged until a license and contributor
-terms are recorded. Contributors must have the right to submit every included
-code, data, and documentation asset.
+Thermograph is dual-licensed MIT OR Apache-2.0 (see `LICENSE-MIT` and
+`LICENSE-APACHE`). Contributor terms (e.g. a CLA/DCO) are not yet recorded, so
+external contributions should not be solicited or merged until those are in
+place. Contributors must have the right to submit every included code, data,
+and documentation asset.
 
 ## Development checks
 
