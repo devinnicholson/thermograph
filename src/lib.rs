@@ -874,15 +874,11 @@ impl CGTValue {
     #[must_use]
     pub fn options(&self) -> (Vec<CGTValue>, Vec<CGTValue>) {
         match self {
-            CGTValue::Integer(n) => {
-                if *n > 0 {
-                    (vec![CGTValue::Integer(n - 1)], vec![])
-                } else if *n < 0 {
-                    (vec![], vec![CGTValue::Integer(n + 1)])
-                } else {
-                    (vec![], vec![])
-                }
-            }
+            CGTValue::Integer(n) => match (*n).cmp(&0) {
+                std::cmp::Ordering::Greater => (vec![CGTValue::Integer(n - 1)], vec![]),
+                std::cmp::Ordering::Less => (vec![], vec![CGTValue::Integer(n + 1)]),
+                std::cmp::Ordering::Equal => (vec![], vec![]),
+            },
             CGTValue::Dyadic(num, den_pow) => {
                 if *den_pow == 0 {
                     return CGTValue::Integer(*num).options();
