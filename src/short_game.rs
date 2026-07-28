@@ -619,7 +619,7 @@ struct ComparisonEngine<'a> {
     memo: HashMap<(NodeId, NodeId), bool>,
 }
 
-impl<'a> ComparisonEngine<'a> {
+impl ComparisonEngine<'_> {
     fn less_or_equal(&mut self, left: NodeId, right: NodeId) -> Result<bool, ShortGameError> {
         if let Some(result) = self.memo.get(&(left, right)) {
             return Ok(*result);
@@ -666,7 +666,7 @@ struct CanonicalEngine<'a> {
     rewrite_steps: usize,
 }
 
-impl<'a> CanonicalEngine<'a> {
+impl CanonicalEngine<'_> {
     fn sorted_options(&mut self, options: &[NodeId]) -> Result<Vec<NodeId>, ShortGameError> {
         let mut keyed = options
             .iter()
