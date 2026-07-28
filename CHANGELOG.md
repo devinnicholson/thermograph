@@ -10,6 +10,14 @@ intended to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Precise public contracts for exact dyadic values, structural identity, and
   approximate floating-point thermography.
+- Bounded constructor expansion, exact four-way comparison, and semantic
+  equality for finite normal-play short games.
+- Named `order7.v1` and `digraph8.v1` resource profiles with typed failures.
+- Deterministic semantic canonical forms with domain-separated SHA-256 value
+  identifiers.
+- Complete semantic target catalogue through birthday three: 1,474 values from
+  98 antichains and 9,604 ordered option-set pairs.
+- Checked semantic example for the Elkies form `{0, * | 1} = 1/2`.
 - `ApproximateThermograph` and `CGTValue::approximate_thermograph` as the
   explicitly approximate thermograph API.
 - Strict public API documentation and a hand-verifiable reference corpus.
@@ -18,12 +26,13 @@ intended to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Package metadata now states the supported scope and minimum Rust version.
-- The README no longer presents structural normalization as full CGT canonical
-  equivalence or thermography as exact for arbitrary game trees.
-- Licensed the crate dual MIT OR Apache-2.0. Thermograph has no dependencies
-  and no GPL constraint, so it uses the ecosystem's standard permissive
-  convention rather than the copyleft terms used elsewhere in this project
-  family.
+- The README assigns separate names and digests to structural, literal, and
+  semantic identities.
+- The legacy structural serialization and digest bytes retain their compatibility
+  contract.
+- Removed the undocumented exploratory `test_bin` executable from the package
+  surface; checked examples now cover both thermography and semantic identity.
+- Licensed the dependency-free crate under MIT OR Apache-2.0.
 
 ### Deprecated
 

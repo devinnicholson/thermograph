@@ -1,18 +1,24 @@
-//! Thermograph: Combinatorial Game Theory & Surreal Numbers in Rust
+//! Thermograph: finite normal-play combinatorial games in Rust.
 //!
-//! Provides thermograph utilities and stable canonical structural identities
-//! for game trees, dyadic numbers, and infinitesimal values like *, ^, and v.
+//! Provides bounded exact comparison, semantic canonical forms, and a complete
+//! birthday-three target catalogue through [`short_game`]. The legacy
+//! [`CGTValue`] surface provides exact dyadic arithmetic, stable structural
+//! identities, named small values, and approximate floating-point thermography.
 //!
-//! Canonical identity in this crate normalizes represented structure only. It
-//! is suitable for stable labels and digests, but it is not a proof of full CGT
-//! equivalence between arbitrary game trees.
+//! [`CGTValue::canonical_serialization`] retains its structural compatibility
+//! meaning. Semantic game identity uses
+//! [`short_game::semantic_canonical_form_bounded`].
 //!
 //! Integer and dyadic atoms have exact arithmetic where the result fits the
 //! representation. Thermographs and scaffolds use [`f32`] and are approximate.
-//! The crate currently supports finite, loop-free, normal-play game trees; it
-//! does not implement draw, repetition, loopy-game, or misere semantics.
+//! The supported exact domain is finite, loop-free normal play. Draw,
+//! repetition, loopy-game, misère, chance, and hidden-information semantics
+//! are outside the crate's domain.
 
 #![deny(missing_docs)]
+
+/// Bounded explicit expansion and exact comparison for short games.
+pub mod short_game;
 
 /// A finite normal-play combinatorial-game value.
 ///

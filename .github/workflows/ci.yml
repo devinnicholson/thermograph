@@ -51,5 +51,9 @@ jobs:
           components: rustfmt, clippy
       - name: Run executable quickstart
         run: cargo run --locked --example switch
+      - name: Run bounded semantic quickstart
+        run: cargo run --locked --example semantic
       - name: Run locked tests
         run: cargo test --locked
+      - name: Verify publishable package
+        run: cargo package --locked

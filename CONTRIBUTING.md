@@ -6,10 +6,10 @@ numerical contracts easier to inspect, reproduce, and falsify.
 ## Before contributing
 
 Thermograph is dual-licensed MIT OR Apache-2.0 (see `LICENSE-MIT` and
-`LICENSE-APACHE`). Contributor terms (e.g. a CLA/DCO) are not yet recorded, so
-external contributions should not be solicited or merged until those are in
-place. Contributors must have the right to submit every included code, data,
-and documentation asset.
+`LICENSE-APACHE`). Contributor terms such as a CLA or DCO remain undecided.
+Maintainers should settle those terms before soliciting or merging external
+contributions. Contributors must have the right to submit every included code,
+data, and documentation asset.
 
 ## Development checks
 
@@ -37,9 +37,9 @@ mean must include:
 4. a note describing whether structural payload bytes or digests change; and
 5. complexity or resource implications for recursive inputs.
 
-Do not generate an expected value by calling the implementation under test.
-When external software supplies an oracle result, record its name, version,
-input, command, and raw output.
+Expected values must come from a hand derivation, frozen independent
+implementation, or published dataset. Record the oracle name, version, input,
+command, raw output, and artifact hash.
 
 ## Compatibility
 
@@ -49,3 +49,8 @@ The `canonical_serialization`, `canonical_bytes`,
 payload version, migration notes, and fixtures for both the old and new
 formats. Deprecate misleading public APIs before removal and retain them until
 a SemVer-compatible release permits removal.
+
+The brace literal prefixes, semantic canonical prefix, named profile
+identifiers, and birthday-three catalogue ordering are also compatibility
+surfaces. Changes require versioned identifiers and old/new conformance
+fixtures.

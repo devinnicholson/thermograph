@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it using this metadata."
-title: "Thermograph: experimental combinatorial-game values and approximate thermography"
+title: "Thermograph: bounded exact short games and approximate thermography"
 type: software
 version: 0.1.0
 license:
@@ -12,11 +12,14 @@ authors:
 repository-code: "https://github.com/devinnicholson/thermograph"
 url: "https://github.com/devinnicholson/thermograph"
 abstract: >-
-  A Rust research prototype for exact dyadic-number arithmetic, stable
-  structural game-tree payloads, named infinitesimals, and approximate
-  floating-point thermography of finite normal-play combinatorial games.
+  Rust research software for bounded exact comparison, semantic canonical
+  forms, a complete birthday-three value catalogue, exact dyadic arithmetic,
+  stable structural game-tree payloads, and approximate floating-point
+  thermography of finite normal-play partizan games.
 keywords:
   - combinatorial game theory
+  - canonical form
+  - short games
   - thermography
   - surreal numbers
   - reproducible research
