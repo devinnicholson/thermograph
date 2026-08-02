@@ -14,6 +14,39 @@ partizan games. It provides:
 
 Rust 1.85 or newer is required. The crate has no runtime dependencies.
 
+## Status and role
+
+| Item | Current state |
+| --- | --- |
+| Crate | `thermograph` 0.1.0 research candidate |
+| Exact domain | Explicit finite, loop-free, two-player normal-play games |
+| Minimum Rust | 1.85 |
+| Runtime dependencies | None |
+| License | MIT OR Apache-2.0 |
+| Registry release | Pending |
+
+Thermograph is the exact finite-game algebra layer used by
+[Partizan](https://github.com/devinnicholson/partizan). Partizan decides which
+candidate to examine; a ruleset adapter constructs its complete game;
+Thermograph compares and canonicalizes that explicit game. Optional chess-side
+structure and search live in [Bitmesh](https://github.com/devinnicholson/bitmesh)
+and [Astralbase](https://github.com/devinnicholson/astralbase).
+
+These boundaries are part of the API contract. Thermograph does not decide
+whether a chess, Domineering, or other ruleset position is legal, complete, or
+reachable. An integration must independently validate its move generator and
+terminal semantics before treating a constructed game as ruleset evidence.
+
+## Quick start
+
+```console
+git clone https://github.com/devinnicholson/thermograph.git
+cd thermograph
+cargo test --locked
+cargo run --locked --example semantic
+cargo run --locked --example switch
+```
+
 ## Identity contracts
 
 Thermograph keeps representation and mathematical identity separate.
