@@ -42,6 +42,14 @@ intended to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Restricted the registry archive to reviewed source, tests, examples,
   conformance fixtures, licenses, citation metadata, and release notes.
 
+### Fixed
+
+- `CGTValue::value_class()` and `exact_value_payload().value_class` now compare
+  dyadic switch options exactly at every representable denominator power.
+  Previously `{1/2^200 | 1/2^201}` was classified as `GameTree` after both
+  options underflowed to the same `f32`; it is now correctly classified as
+  `Switch`. Structural payloads, digests, and semantic value IDs are unchanged.
+
 ### Deprecated
 
 - `CGTValue::exact_thermograph`. It remains source-compatible but returns the
