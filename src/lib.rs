@@ -115,7 +115,9 @@ pub struct ExactValuePayload {
 ///
 /// Normalization removes factors of two and represents zero with denominator
 /// power zero. Operations return `None` from their checked variants if the
-/// normalized numerator cannot be represented as an [`i32`].
+/// normalized numerator cannot be represented as an [`i32`]. Equality and
+/// ordering are exact for every representable denominator power and do not
+/// convert through floating point.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DyadicRational {
     numerator: i32,
@@ -249,6 +251,56 @@ impl DyadicRational {
     pub fn canonical_serialization(&self) -> String {
         format!("Number({}/2^{})", self.numerator, self.denominator_power)
     }
+}
+
+impl PartialOrd for DyadicRational {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for DyadicRational {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        use std::cmp::Ordering;
+
+        match (self.numerator.cmp(&0), other.numerator.cmp(&0)) {
+            (Ordering::Less, Ordering::Less) => compare_positive_dyadics(
+                other.numerator.unsigned_abs(),
+                other.denominator_power,
+                self.numerator.unsigned_abs(),
+                self.denominator_power,
+            ),
+            (Ordering::Greater, Ordering::Greater) => compare_positive_dyadics(
+                self.numerator.unsigned_abs(),
+                self.denominator_power,
+                other.numerator.unsigned_abs(),
+                other.denominator_power,
+            ),
+            (left_sign, right_sign) => left_sign.cmp(&right_sign),
+        }
+    }
+}
+
+fn compare_positive_dyadics(
+    left_numerator: u32,
+    left_denominator_power: u32,
+    right_numerator: u32,
+    right_denominator_power: u32,
+) -> std::cmp::Ordering {
+    debug_assert!(left_numerator > 0);
+    debug_assert!(right_numerator > 0);
+
+    let left_bits = u32::BITS - left_numerator.leading_zeros();
+    let right_bits = u32::BITS - right_numerator.leading_zeros();
+    let left_exponent = i64::from(left_bits) - 1 - i64::from(left_denominator_power);
+    let right_exponent = i64::from(right_bits) - 1 - i64::from(right_denominator_power);
+
+    left_exponent.cmp(&right_exponent).then_with(|| {
+        let common_bits = left_bits.max(right_bits);
+        let left_significand = u64::from(left_numerator) << (common_bits - left_bits);
+        let right_significand = u64::from(right_numerator) << (common_bits - right_bits);
+        left_significand.cmp(&right_significand)
+    })
 }
 
 #[must_use]
@@ -1361,14 +1413,7 @@ fn is_simple_switch(left: &[CGTValue], right: &[CGTValue]) -> bool {
 }
 
 fn dyadic_greater_than(left: DyadicRational, right: DyadicRational) -> bool {
-    let scale = left.denominator_power.max(right.denominator_power);
-    if scale <= 120 {
-        let left_scaled = i128::from(left.numerator) << (scale - left.denominator_power);
-        let right_scaled = i128::from(right.numerator) << (scale - right.denominator_power);
-        return left_scaled > right_scaled;
-    }
-
-    left.to_f32() > right.to_f32()
+    left > right
 }
 
 #[cfg(test)]

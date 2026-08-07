@@ -1,0 +1,66 @@
+name: Mathematical or identity discrepancy
+description: Report an exact verdict, canonical form, identity, or numerical fixture discrepancy.
+title: "correctness: "
+labels: ["correctness"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        State whether the claim is exact or approximate. Do not disclose a
+        security-sensitive collision or denial-of-service input here.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: claim
+    attributes:
+      label: Claim type
+      options:
+        - Exact comparison or equality
+        - Semantic canonical form or value ID
+        - Structural serialization or digest
+        - Exact dyadic arithmetic
+        - Approximate thermograph
+        - Catalogue completeness or ordering
+    validations:
+      required: true
+  - type: textarea
+    id: game
+    attributes:
+      label: Minimal explicit game
+      description: Give both sides' complete options and the named profile.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: derivation
+    attributes:
+      label: Expected result and derivation
+      description: Cite a hand derivation, independent implementation, or published reference.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Thermograph result and reproduction command
+    validations:
+      required: true
+  - type: input
+    id: tolerance
+    attributes:
+      label: Numerical tolerance
+      description: Required for approximate thermography; use "not applicable" for exact claims.
+    validations:
+      required: true
+  - type: checkboxes
+    id: domain
+    attributes:
+      label: Domain confirmation
+      options:
+        - label: The game is finite, loop-free, two-player, partizan, and normal-play.
+          required: true
+        - label: Ruleset legality and move-graph completeness were checked outside Thermograph.
+          required: true

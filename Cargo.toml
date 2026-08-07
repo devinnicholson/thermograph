@@ -11,6 +11,28 @@ documentation = "https://docs.rs/thermograph"
 readme = "README.md"
 keywords = ["combinatorial-games", "game-theory", "thermograph", "surreal"]
 categories = ["algorithms", "mathematics", "science"]
-exclude = ["test_cgt.rs"]
+include = [
+    "/CHANGELOG.md",
+    "/CITATION.cff",
+    "/CONTRIBUTING.md",
+    "/Cargo.lock",
+    "/DCO.md",
+    "/LICENSE-APACHE",
+    "/LICENSE-MIT",
+    "/README.md",
+    "/SECURITY.md",
+    "/SUPPORT.md",
+    "/conformance/**",
+    "/docs/**",
+    "/examples/**",
+    "/src/**",
+    "/tests/**",
+]
 
 [dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[package.metadata.docs.rs]
+all-features = true

@@ -22,6 +22,12 @@ intended to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   explicitly approximate thermograph API.
 - Strict public API documentation and a hand-verifiable reference corpus.
 - Cross-platform CI, citation metadata, and contribution guidance.
+- An immutable 22-ID birthday-two cross-runtime conformance fixture generated
+  from all 256 literal games.
+- Exact total ordering for normalized dyadic rationals, including denominator
+  powers beyond the representable `f32` range.
+- Security, support, DCO, release, and supply-chain policies for the first
+  registry release.
 
 ### Changed
 
@@ -33,6 +39,8 @@ intended to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Removed the undocumented exploratory `test_bin` executable from the package
   surface; checked examples now cover both thermography and semantic identity.
 - Licensed the dependency-free crate under MIT OR Apache-2.0.
+- Restricted the registry archive to reviewed source, tests, examples,
+  conformance fixtures, licenses, citation metadata, and release notes.
 
 ### Deprecated
 

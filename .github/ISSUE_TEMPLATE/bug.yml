@@ -1,0 +1,73 @@
+name: Implementation bug
+description: Report a reproducible API, build, resource-bound, or packaging failure.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Security-sensitive failures belong in the private reporting path in
+        SECURITY.md. Mathematical discrepancies use the dedicated template.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Exact crate version or full commit SHA.
+    validations:
+      required: true
+  - type: input
+    id: toolchain
+    attributes:
+      label: Environment
+      description: Rust version, operating system, and architecture.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: API surface
+      options:
+        - Bounded exact comparison or canonicalization
+        - Structural or semantic identity
+        - Exact dyadic arithmetic
+        - Approximate thermography
+        - Build, package, or documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: profile
+    attributes:
+      label: Resource profile
+      description: Named profile ID and any changed limits, or "not applicable".
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the smallest explicit game and complete commands.
+      render: rust
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I removed secrets and unpublished vulnerability details.
+          required: true
+        - label: I verified that the input is inside the documented supported domain.
+          required: true

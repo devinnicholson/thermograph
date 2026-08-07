@@ -7,10 +7,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     name: Rust 1.85 / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -39,6 +44,7 @@ jobs:
   stable:
     name: Rust stable / ubuntu-latest
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -57,3 +63,5 @@ jobs:
         run: cargo test --locked
       - name: Verify publishable package
         run: cargo package --locked
+      - name: Test the packaged source archive
+        run: cargo test --locked --manifest-path target/package/thermograph-0.1.0/Cargo.toml

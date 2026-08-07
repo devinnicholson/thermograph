@@ -1,6 +1,7 @@
 # Thermograph
 
 [![CI](https://github.com/devinnicholson/thermograph/actions/workflows/ci.yml/badge.svg)](https://github.com/devinnicholson/thermograph/actions/workflows/ci.yml)
+[![Supply chain](https://github.com/devinnicholson/thermograph/actions/workflows/supply-chain.yml/badge.svg)](https://github.com/devinnicholson/thermograph/actions/workflows/supply-chain.yml)
 
 Thermograph is a Rust research library for finite, loop-free, normal-play
 partizan games. It provides:
@@ -13,6 +14,18 @@ partizan games. It provides:
 - approximate floating-point thermography.
 
 Rust 1.85 or newer is required. The crate has no runtime dependencies.
+
+Choose the API by the claim you need:
+
+| Claim | API | Result |
+| --- | --- | --- |
+| Exact order or equality | `compare_short_game_bounded`, `equal_short_game_bounded` | Four-way mathematical relation or typed failure |
+| Exact semantic identity | `semantic_canonical_form_bounded` | Audited canonical form and versioned SHA-256 value ID |
+| Structural compatibility | `canonical_serialization`, `digest_v1_sha256` | Representation identity; equal games may differ |
+| Numerical thermography | `approximate_thermograph` | Exploratory `f32` mean, temperature, and scaffolds |
+
+The [API and identity contract](docs/API_AND_IDENTITY_CONTRACT.md) fixes these
+boundaries for the 0.1 release line.
 
 ## Status and role
 
@@ -38,6 +51,8 @@ reachable. An integration must independently validate its move generator and
 terminal semantics before treating a constructed game as ruleset evidence.
 
 ## Quick start
+
+The registry release is pending. Build the reviewed source candidate with:
 
 ```console
 git clone https://github.com/devinnicholson/thermograph.git
@@ -231,6 +246,11 @@ The test suite includes:
 - all 256 birthday-two literal games, yielding 22 semantic values; and
 - the complete birthday-three catalogue, yielding 1,474 semantic values.
 
+The immutable
+[`day2-semantic-ids-v1.txt`](conformance/day2-semantic-ids-v1.txt) fixture lets
+independent implementations compare the complete birthday-two semantic ID set
+without importing Thermograph internals.
+
 Reference expectations follow:
 
 - John H. Conway, *On Numbers and Games*, second edition, A K Peters, 2001.
@@ -243,6 +263,11 @@ Reference expectations follow:
 
 Citation metadata is available in [`CITATION.cff`](CITATION.cff). A release
 archive or DOI should be used when one is available.
+
+Release candidates follow the
+[`release checklist`](docs/RELEASE_CHECKLIST.md). Support, vulnerability
+reporting, and contributor sign-off are described in [`SUPPORT.md`](SUPPORT.md),
+[`SECURITY.md`](SECURITY.md), and [`DCO.md`](DCO.md).
 
 ## License
 
