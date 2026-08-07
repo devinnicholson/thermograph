@@ -1,23 +1,42 @@
-# Developer Certificate of Origin
+Developer Certificate of Origin
+Version 1.1
 
-This project uses the Developer Certificate of Origin, version 1.1, published
-at <https://developercertificate.org/>. By adding a `Signed-off-by` line to a
-commit, a contributor certifies that the contribution satisfies that
-certificate and that they have the right to submit all included code, tests,
-data, and documentation under this project's MIT OR Apache-2.0 license.
+Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
 
-Sign commits with:
+Everyone is permitted to copy and distribute verbatim copies of this
+license document, but changing it is not allowed.
 
-```text
-Signed-off-by: Your Name <your-email@example.com>
-```
+Developer's Certificate of Origin 1.1
 
-Git can add the line automatically:
+By making a contribution to this project, I certify that:
 
-```text
-git commit --signoff
-```
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
 
-The sign-off records origin and licensing permission. It does not transfer
-copyright and is separate from cryptographic commit signing. A pull request
-with missing sign-offs should be corrected before merge.
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+
+Project signoff instructions
+
+Every Thermograph contribution commit must record agreement with this
+certificate using a signoff line:
+
+    Signed-off-by: Your Name <your-email@example.com>
+
+Add it automatically with `git commit --signoff`.
