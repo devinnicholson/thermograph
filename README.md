@@ -37,6 +37,7 @@ boundaries for the 0.1 release line.
 | Runtime dependencies | None |
 | License | MIT OR Apache-2.0 |
 | Registry release | Pending |
+| Research snapshot | [`v0.1.0-alpha.1`](https://github.com/devinnicholson/thermograph/releases/tag/v0.1.0-alpha.1) |
 
 Thermograph is the exact finite-game algebra layer used by
 [Partizan](https://github.com/devinnicholson/partizan). Partizan decides which
@@ -261,8 +262,9 @@ Reference expectations follow:
 
 ## Citation
 
-Citation metadata is available in [`CITATION.cff`](CITATION.cff). A release
-archive or DOI should be used when one is available.
+Citation metadata is available in [`CITATION.cff`](CITATION.cff). Cite the
+`v0.1.0-alpha.1` research snapshot or the exact commit used in an experiment.
+The snapshot does not imply a stable API or crates.io publication.
 
 Release candidates follow the
 [`release checklist`](docs/RELEASE_CHECKLIST.md). Support, vulnerability
